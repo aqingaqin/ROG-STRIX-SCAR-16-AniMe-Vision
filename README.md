@@ -1,5 +1,6 @@
 # 因为奥创自带的控制台很难用，所以让大肥鱼写了一个
-# 灯效如果频繁闪烁，需要手动去奥创中心重新开关AniMe Vision，然后重启本项目的AniMe Vision.lnk 灯控即可
+# 灯效如果频繁闪烁，需要手动去奥创中心重新开关AniMe Vision，然后重启本项目的AniMe Vision.lnk 灯控即可，大肥鱼给的start_admin.bat会杀掉奥创所有的灯效
+# 已在本人的枪9超竟（16寸）测试，可以正常使用
 # 下面是大肥鱼自己写的
 # AniMe Vision 控制台
 
