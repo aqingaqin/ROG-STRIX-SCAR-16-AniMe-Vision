@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AniMe Vision 控制台</title>
+<style>
+  :root{
+    --bg:#0b0c10; --panel:#14161d; --panel2:#1b1e27; --line:#262a36;
+    --txt:#e8eaf0; --dim:#8b90a0; --acc:#e63545; --acc2:#ff6b7a;
+    --ok:#3ddc97; --warn:#ffb340;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#1a1116,#0b0c10 60%);
+       color:var(--txt);font:14px/1.6 "Microsoft YaHei","Segoe UI",system-ui,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:16px 24px;
+         border-bottom:1px solid var(--line);background:rgba(20,22,29,.7);
+         backdrop-filter:blur(8px);position:sticky;top:0;z-index:10}
+  .logo{font-size:18px;font-weight:700;letter-spacing:.5px}
+  .logo b{color:var(--acc)}
+  .sub{color:var(--dim);font-size:12px}
+  .spacer{flex:1}
+  .pill{display:flex;align-items:center;gap:7px;padding:6px 13px;border-radius:99px;
+        background:var(--panel2);border:1px solid var(--line);font-size:12px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#666}
+  .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+  button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--txt);
+         padding:8px 15px;border-radius:9px;font-size:13px;transition:.15s}
+  button:hover{background:#252935;border-color:#39404f}
+  button.primary{background:linear-gradient(135deg,var(--acc),#a91f2c);border-color:#c02b39;font-weight:600}
+  button.primary:hover{filter:brightness(1.12)}
+  button.ghost{background:transparent}
+  main{display:grid;grid-template-columns:560px 1fr;gap:20px;padding:20px 24px;max-width:1420px;margin:0 auto}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .card h3{margin:0 0 12px;font-size:13px;color:var(--dim);font-weight:600;letter-spacing:.6px}
+  .preview{display:flex;flex-direction:column;align-items:center;gap:12px}
+  #lid{width:100%;display:block;border-radius:12px;background:transparent}
+  .legend{font-size:12px;color:var(--dim);text-align:center}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:8px 15px;border-radius:99px;font-size:13px;border:1px solid var(--line);
+       background:transparent;color:var(--dim)}
+  .tab.active{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+  .pane{display:none;flex-direction:column;gap:13px}
+  .pane.active{display:flex}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  label.fld{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--dim);flex:1;min-width:110px}
+  input[type=text],textarea,select,input[type=number]{
+    background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;width:100%}
+  textarea{resize:vertical;min-height:62px}
+  input[type=range]{width:100%;accent-color:var(--acc)}
+  input[type=file]{display:none}
+  .val{min-width:38px;text-align:right;font-size:12px;color:var(--acc2);font-variant-numeric:tabular-nums}
+  .drop{border:1px dashed #3a414f;border-radius:12px;padding:16px;text-align:center;
+        color:var(--dim);cursor:pointer;font-size:13px}
+  .drop:hover{border-color:var(--acc);color:var(--txt);background:#191c24}
+  .hint{font-size:12px;color:var(--dim);line-height:1.5}
+  .chk{display:flex;align-items:center;gap:7px;font-size:13px}
+  .chk input{accent-color:var(--acc);width:15px;height:15px}
+  .sysList{display:flex;flex-direction:column;gap:3px;max-height:300px;overflow:auto;
+           border:1px solid var(--line);border-radius:10px;padding:6px;background:rgba(255,255,255,.015)}
+  .sysRow{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:7px}
+  .sysRow:hover{background:#1b1e26}
+  .sysRow .chk{flex:1;margin:0;cursor:pointer}
+  .sysRow .move{display:flex;gap:4px}
+  .sysRow .sysSec{width:54px;flex:0 0 54px;padding:3px 4px;text-align:center;font-size:12px}
+  .sysRow .move button{padding:2px 9px;font-size:12px;line-height:1.3;border-radius:6px}
+  .sysRow .move button:disabled{opacity:.25;cursor:default}
+  .footer{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:16px;
+          border-top:1px solid var(--line);padding-top:14px}
+  .brightness{display:flex;align-items:center;gap:10px;flex:1;min-width:220px}
+  .brightness span{font-size:12px;color:var(--dim);min-width:46px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:6px;background:#232735;color:var(--dim)}
+  #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+         background:#22262f;border:1px solid var(--line);padding:10px 18px;border-radius:10px;
+         font-size:13px;opacity:0;transition:.25s;pointer-events:none;max-width:80vw}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.err{border-color:#7a2c33;background:#2a1a1e}
+  .fxlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;
+          max-height:330px;overflow-y:auto;padding:2px}
+  .fxgroup{grid-column:1/-1;font-size:11px;color:var(--dim);letter-spacing:.8px;
+           text-transform:uppercase;margin:6px 0 0;padding-bottom:4px;
+           border-bottom:1px solid var(--line)}
+  .fxcard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+          padding:6px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;
+          align-items:center;gap:5px}
+  .fxcard:hover{border-color:var(--acc);background:#252935;transform:translateY(-1px)}
+  .fxcard.active{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+  .fxcard img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px;background:#0b0c10}
+  .fxcard span{font-size:11px;color:var(--txt);text-align:center;line-height:1.3;
+               max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fxcard .add{font-size:10px;padding:2px 6px;border-radius:6px;background:#2a2e3a;
+                border:1px solid var(--line);color:var(--dim);cursor:pointer;white-space:nowrap}
+  .fxcard .add:hover{background:var(--acc);border-color:var(--acc);color:#fff}
+  .plbox{border-top:1px solid var(--line);margin-top:14px;padding-top:12px;
+         display:flex;flex-direction:column;gap:8px}
+  .plhead{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600}
+  .plhead .spacer{flex:1}
+  .pllist{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto}
+  .plitem{display:flex;align-items:center;gap:8px;background:var(--panel2);
+          border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;
+          cursor:grab}
+  .plitem.playing{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+  .plitem .idx{color:var(--dim);font-variant-numeric:tabular-nums;min-width:16px}
+  .plitem .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .plitem .thm{font-size:10px;color:var(--dim)}
+  .plitem .rm{cursor:pointer;color:var(--dim);padding:0 4px;border-radius:4px}
+  .plitem .rm:hover{color:#fff;background:#7a2c33}
+  @media (max-width:1000px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">AniMe <b>Vision</b> 控制台</div>
+    <div class="sub">ROG 枪神9超竞版 · 810 颗 LED 直控</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="pill"><span class="dot" id="dot"></span><span id="statusTxt">未连接</span></div>
+  <button id="btnConnect">连接</button>
+  <button id="btnDisconnect" class="ghost">断开</button>
+  <button id="btnShutdown" class="ghost" title="熄灭灯板并关闭后台程序">关闭程序</button>
+</header>
+
+<main>
+  <div class="card preview">
+    <h3 style="align-self:flex-start">实时预览 · A 面</h3>
+    <canvas id="lid" width="560" height="386"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" data-tab="image">图片</button>
+      <button class="tab" data-tab="gif">GIF</button>
+      <button class="tab" data-tab="fx">奥创灯效</button>
+      <button class="tab" data-tab="text">文字</button>
+      <button class="tab" data-tab="sys">系统信息</button>
+      <button class="tab" data-tab="music">音乐</button>
+    </div>
+
+    <div class="pane active" id="pane-image">
+      <div class="drop" id="dropImage">点击选择图片（PNG / JPG / BMP / WebP）</div>
+      <input type="file" id="fileImage" accept="image/*">
+      <div class="row">
+        <label class="fld">亮度
+          <input type="range" id="imgBright" min="0.2" max="1.5" step="0.05" value="1">
+        </label>
+      </div>
+      <div class="row">
+        <button class="primary" id="btnImage">显示到灯板</button>
+        <span class="tag" id="imgName">未选择</span>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-gif">
+      <div class="drop" id="dropGif">点击选择 GIF 动画（也支持 .webmatrix 奥创动画包）</div>
+      <input type="file" id="fileGif" accept="image/gif,.webmatrix">
+      <div class="row">
+        <label class="fld">亮度
+          <input type="range" id="gifBright" min="0.2" max="1.5" step="0.05" value="1">
+        </label>
+        <label class="fld">循环次数（0=无限）
+          <input type="number" id="gifLoops" value="0" min="0">
+        </label>
+      </div>
+      <div class="row">
+        <button class="primary" id="btnGif">播放到灯板</button>
+        <span class="tag" id="gifName">未选择</span>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-fx">
+      <div class="row">
+        <span class="hint" style="flex:1">从奥创下载的矩阵灯效中直接点选播放，无需再经奥创。</span>
+        <button class="ghost" id="btnFxRefresh">重新扫描</button>
+      </div>
+      <div class="row">
+        <label class="fld">亮度
+          <input type="range" id="fxBright" min="0.3" max="1.5" step="0.05" value="1">
+        </label>
+        <label class="fld">播放速度
+          <input type="range" id="fxSpeed" min="0.3" max="2" step="0.05" value="0.5">
+        </label>
+        <label class="fld">单曲循环（0=无限）
+          <input type="number" id="fxLoops" value="0" min="0">
+        </label>
+      </div>
+      <div id="fxList" class="fxlist">
+        <div class="hint" id="fxEmpty">正在扫描奥创灯效目录…</div>
+      </div>
+      <div class="row">
+        <button class="ghost" id="btnFxStop">停止并清空</button>
+        <span class="tag" id="fxState">未播放</span>
+      </div>
+
+      <div class="plbox">
+        <div class="plhead">
+          <span>播放列表</span>
+          <span class="hint" id="plCount">0 个</span>
+          <span class="spacer"></span>
+          <label class="fld" style="max-width:118px;flex:none">每个播几轮
+            <input type="number" id="plLoops" value="1" min="1" max="20">
+          </label>
+        </div>
+        <div class="hint">在灯效卡片上点「+ 加入列表」；下面的顺序就是播放顺序，可拖动排序。</div>
+        <div id="plList" class="pllist">
+          <div class="hint" id="plEmpty">列表是空的，先选几个灯效加进来。</div>
+        </div>
+        <div class="row">
+          <button class="primary" id="btnPlStart">开始轮播</button>
+          <button class="ghost" id="btnPlNext">下一个</button>
+          <button class="ghost" id="btnPlStop">停止轮播</button>
+          <button class="ghost" id="btnPlClear">清空列表</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-text">
+      <label class="fld">文字内容
+        <textarea id="txtText" placeholder="例如：ROG 枪神9">ROG 枪神9</textarea>
+      </label>
+      <div class="row">
+        <label class="fld">字号
+          <input type="range" id="txtSize" min="140" max="320" step="5" value="286">
+        </label>
+        <label class="fld">滚动速度
+          <input type="range" id="txtSpeed" min="10" max="300" step="5" value="60">
+        </label>
+      </div>
+      <div class="row">
+        <label class="fld">上下位置
+          <input type="range" id="txtVOffset" min="-8" max="8" step="0.5" value="0">
+        </label>
+      </div>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="txtScroll" checked> 滚动显示</label>
+        <span class="tag">英文用华硕点阵字体 · 中文回退黑体</span>
+      </div>
+      <div class="row">
+        <button class="primary" id="btnText">显示到灯板</button>
+        <button class="ghost" id="btnClear">清空灯板</button>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-sys">
+      <div class="row">
+        <label class="fld" style="max-width:170px">显示方式
+          <select id="sysDisplay">
+            <option value="scroll">滚动显示</option>
+            <option value="rotate">轮替显示</option>
+          </select>
+        </label>
+        <span class="tag">每 2 秒刷新</span>
+      </div>
+      <div class="row">
+        <label class="fld">字体大小
+          <input type="range" id="sysFont" min="6" max="14" step="1" value="12">
+        </label>
+        <label class="fld">滚动速度
+          <input type="range" id="sysSpeed" min="30" max="300" step="10" value="90">
+        </label>
+      </div>
+      <div class="row">
+        <label class="fld">字体上下（正数下移，1≈一格）
+          <input type="range" id="sysFontV" min="-3" max="3" step="0.1" value="1.0">
+        </label>
+      </div>
+      <div class="sysList" id="sysList">
+        <div class="sysRow" data-key="cpu_name">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="cpu_name" checked> CPU 名称</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="cpu_usage">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="cpu_usage" checked> CPU 占用率</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="cpu_temp">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="cpu_temp" checked> CPU 温度</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="cpu_power">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="cpu_power" checked> CPU 功率</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="gpu_name">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="gpu_name" checked> GPU 名称</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="gpu_usage">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="gpu_usage" checked> GPU 占用率</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="gpu_temp">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="gpu_temp" checked> GPU 温度</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="gpu_power">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="gpu_power" checked> GPU 功率</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="ram">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="ram" checked> 内存占用</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="vram">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="vram" checked> 显存占用</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="time">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="time" checked> 时间</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="battery">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="battery" checked> 电量</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+        <div class="sysRow" data-key="app">
+          <label class="chk"><input type="checkbox" class="sysOn" data-key="app" checked> 当前应用</label>
+          <span class="move"><button type="button" data-dir="up">↑</button><button type="button" data-dir="down">↓</button></span>
+        </div>
+      </div>
+      <div class="row">
+        <label class="fld" style="max-width:250px">CPU 显示名称（留空自动）
+          <input type="text" id="sysCpuName" maxlength="24" placeholder="例如 Ultra 9 275HX">
+        </label>
+        <label class="fld" style="max-width:250px">GPU 显示名称（留空自动）
+          <input type="text" id="sysGpuName" maxlength="24" placeholder="例如 RTX 5080">
+        </label>
+      </div>
+      <div class="row">
+        <label class="fld" style="max-width:260px">应用前缀（显示为「前缀 - 应用名」）
+          <input type="text" id="sysAppLabel" value="正在使用" maxlength="20" placeholder="正在使用">
+        </label>
+      </div>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="sysAutoGame" checked> 自动识别游戏</label>
+        <span class="tag">游戏显示「正在玩」，其他显示应用前缀</span>
+      </div>
+      <div class="row"><button class="primary" id="btnSys">开始显示系统信息</button></div>
+      <div class="hint">勾选要显示的项目，用 ↑ / ↓ 调整先后顺序；每个项目后面的数字是轮替时停留的秒数；字体大小和滚动速度对「滚动」「轮替」都生效；字体上下用正数下移、负数上移（1 约一格）。 自动识别游戏开启时，游戏显示「正在玩 - 游戏名」，其他软件用应用前缀；关闭后所有程序都用应用前缀。 「滚动」把所有项目连成一行左右滚动；「轮替」每页一个项目，文字会自己滚动，停留够设定秒数后切到下一个。CPU/GPU 名称留空就用自动识别的名字，也可以填短一点。CPU 温度来自 ASUS ATKACPI/EC 传感器（GHelper 同款，普通权限即可），CPU 功率来自性能计数器，GPU 数据来自 NVIDIA 驱动；首次读取传感器需要几秒。</div>
+    </div>
+
+    <div class="pane" id="pane-music">
+      <div class="hint">采集系统正在播放的声音（WASAPI 回环），把频谱实时画到灯板上。
+        先播放音乐/视频，再点「开始音乐可视化」。</div>
+      <div class="row">
+        <label class="fld">灵敏度
+          <input type="range" id="musicGain" min="0.2" max="3" step="0.05" value="1">
+        </label>
+        <label class="fld">衰减
+          <input type="range" id="musicDecay" min="0.5" max="0.99" step="0.01" value="0.86">
+        </label>
+        <label class="chk" style="align-self:flex-end;padding-bottom:9px">
+          <input type="checkbox" id="musicFull"> 全频段（线性）
+        </label>
+      </div>
+      <div class="row">
+        <label class="fld">样式
+          <select id="musicStyle">
+            <option value="bars" selected>实心柱 · 12 条紧凑</option>
+            <option value="spectrum1">频谱 1（奥创 AniMe Vision）</option>
+            <option value="strobing">节拍频闪（奥创 Strobing）</option>
+            <option value="raindrop">雨滴（奥创 Raindrop）</option>
+            <option value="wave">波形（奥创 Wave）</option>
+            <option value="pbar11">实心柱 · 11 条均匀</option>
+            <option value="gh">g-helper 20 条斜柱</option>
+            <option value="vbar">竖直柱</option>
+            <option value="waterfall">滚动瀑布</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="mShowBars" checked> 显示音频柱</label>
+        <label class="chk"><input type="checkbox" id="npShow" checked> 显示歌名/歌手</label>
+        <label class="chk"><input type="checkbox" id="mPeaks"> 柱顶峰值点</label>
+        <label class="chk"><input type="checkbox" id="mGrad" checked> 柱身渐变</label>
+        <span class="tag" id="npText">未获取</span>
+      </div>
+      <div class="row">
+        <label class="fld">条数
+          <input type="number" id="mBars" value="12" min="3" max="17">
+        </label>
+        <label class="fld">柱宽（列）
+          <input type="number" id="mCw" value="2" min="1" max="3">
+        </label>
+        <label class="fld">缝隙（列）
+          <input type="number" id="mCg" value="1" min="0" max="3">
+        </label>
+      </div>
+      <div class="row">
+        <label class="fld">歌名字号
+          <input type="range" id="npUnits" min="6" max="24" step="1" value="15">
+        </label>
+        <label class="fld">滚动速度
+          <input type="range" id="npSpeed" min="4" max="40" step="1" value="12">
+        </label>
+        <label class="fld">柱子压暗
+          <input type="range" id="npDim" min="0.15" max="1" step="0.05" value="0.4">
+        </label>
+        <label class="fld">歌名上下
+          <input type="range" id="npVOff" min="-6" max="6" step="0.5" value="0.5">
+        </label>
+      </div>
+      <div class="row">
+        <button class="ghost" id="btnMusicApply">应用柱/歌名参数</button>
+        <button class="ghost" id="btnMusicEven">均匀 11 条</button>
+        <button class="ghost" id="btnMusicCompact">紧凑 12 条</button>
+      </div>
+      <div class="row">
+        <button class="primary" id="btnMusic">开始音乐可视化</button>
+        <button class="ghost" id="btnMusicStop">停止</button>
+        <span class="tag" id="musicState">未启动</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="brightness">
+        <span>亮度</span>
+        <input type="range" id="brightness" min="0" max="3" step="1" value="2">
+        <span id="brightTxt">中</span>
+      </div>
+      <label class="chk"><input type="checkbox" id="power" checked> 显示</label>
+    </div>
+    <div class="hint" style="margin-top:10px">
+      若灯板闪烁或被奥创覆盖：用 <b>start_admin.bat</b> 以管理员身份启动（会临时暂停奥创灯效服务）。
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let files = { image: null, gif: null };
+
+function toast(msg, err) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'show' + (err ? ' err' : '');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.className = '', 2600);
+}
+
+async function api(path, body) {
+  const opt = body === undefined ? {} : {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  };
+  const r = await fetch(path, opt);
+  const ct = r.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return r.json();
+  return r.text();
+}
+
+document.querySelectorAll('input[type=range]').forEach(r => {
+  const out = document.createElement('span');
+  out.className = 'val';
+  out.textContent = r.value;
+  r.insertAdjacentElement('afterend', out);
+  r.addEventListener('input', () => { out.textContent = r.value; });
+});
+
+async function refreshState() {
+  try {
+    const s = await api('/api/state');
+    const dot = $('#dot'), txt = $('#statusTxt');
+    if (s.connected) {
+      dot.className = 'dot on';
+      txt.textContent = '已连接 · ' + ({ off: '待机', image: '图片', gif: 'GIF',
+        text: '文字', sysinfo: '系统信息', music: '音乐' }[s.mode] || s.mode);
+    } else {
+      dot.className = 'dot warn';
+      txt.textContent = '未连接';
+    }
+    if (document.activeElement !== $('#brightness')) $('#brightness').value = s.brightness;
+    $('#brightTxt').textContent = s.brightness_name;
+    $('#power').checked = s.display_on;
+  } catch (e) { /* 服务器未就绪 */ }
+}
+
+$('#btnConnect').onclick = async () => {
+  const r = await api('/api/connect', {});
+  toast(r.ok ? '设备已连接' : ('连接失败：' + (r.error || '')), !r.ok);
+  refreshState();
+};
+$('#btnDisconnect').onclick = async () => {
+  await api('/api/disconnect', {});
+  toast('已断开');
+  refreshState();
+};
+$('#btnShutdown').onclick = async () => {
+  if (!confirm('关闭灯控程序？\n\n会熄灭灯板并退出后台服务（浏览器页面稍后失效）。\n下次用桌面「AniMe Vision 灯控」快捷方式重新启动。')) return;
+  try {
+    await api('/api/shutdown', {});
+  } catch (e) { /* 进程已退出，忽略 */ }
+  document.body.innerHTML =
+    '<div style="display:flex;height:100vh;align-items:center;justify-content:center;' +
+    'flex-direction:column;gap:14px;font:16px/1.8 sans-serif;color:#e8eaf0">' +
+    '<div style="font-size:22px">灯控程序已关闭</div>' +
+    '<div style="color:#8b90a0">灯板已熄灭。双击桌面「AniMe Vision 灯控」可重新启动。</div></div>';
+};
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    $('#pane-' + t.dataset.tab).classList.add('active');
+  };
+});
+
+function bindFile(dropSel, inputSel, key, nameSel) {
+  const drop = $(dropSel), input = $(inputSel);
+  drop.onclick = () => input.click();
+  input.onchange = () => {
+    const f = input.files[0];
+    if (!f) return;
+    files[key] = f;
+    $(nameSel).textContent = f.name + ' (' + (f.size / 1024).toFixed(0) + ' KB)';
+  };
+}
+bindFile('#dropImage', '#fileImage', 'image', '#imgName');
+bindFile('#dropGif', '#fileGif', 'gif', '#gifName');
+
+function fileToB64(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result).split(',')[1]);
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+
+$('#btnImage').onclick = async () => {
+  if (!files.image) return toast('请先选择图片', true);
+  const data = await fileToB64(files.image);
+  const r = await api('/api/image', { data, brightness: parseFloat($('#imgBright').value) });
+  toast(r.ok ? '已显示图片' : ('失败：' + (r.error || '')), !r.ok);
+  refreshState();
+};
+
+$('#btnGif').onclick = async () => {
+  if (!files.gif) return toast('请先选择 GIF', true);
+  toast('正在解析…');
+  const data = await fileToB64(files.gif);
+  const isWebmatrix = /\.webmatrix$/i.test(files.gif.name);
+  const body = {
+    data, loops: parseInt($('#gifLoops').value || '0'),
+    brightness: parseFloat($('#gifBright').value)
+  };
+  if (isWebmatrix) {
+    // 奥创矩阵动画包：按灯板坐标映射
+    body.space = 'fx';
+    body.fit = 'stretch';
+  }
+  const r = await api('/api/gif', body);
+  toast(r.ok
+    ? ((isWebmatrix ? '奥创动画已播放，共 ' : '正在播放，共 ') + r.frames + ' 帧')
+    : ('失败：' + (r.error || '')), !r.ok);
+  refreshState();
+};
+
+$('#btnText').onclick = async () => {
+  const r = await api('/api/text', {
+    text: $('#txtText').value || ' ',
+    size: parseInt($('#txtSize').value),
+    speed: parseFloat($('#txtSpeed').value),
+    scroll: $('#txtScroll').checked,
+    v_offset: parseFloat($('#txtVOffset').value)
+  });
+  toast(r.ok ? '文字已显示' : ('失败：' + (r.error || '')), !r.ok);
+  refreshState();
+};
+$('#btnClear').onclick = async () => {
+  await api('/api/off', {});
+  toast('灯板已清空');
+  refreshState();
+};
+function sysRows() {
+  return [...document.querySelectorAll('#sysList .sysRow')];
+}
+function updateSysButtons() {
+  const rows = sysRows();
+  rows.forEach((row, i) => {
+    const up = row.querySelector('[data-dir="up"]');
+    const down = row.querySelector('[data-dir="down"]');
+    if (up) up.disabled = i === 0;
+    if (down) down.disabled = i === rows.length - 1;
+  });
+}
+function ensureSysSecInputs() {
+  sysRows().forEach(row => {
+    if (row.querySelector('.sysSec')) return;
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'sysSec';
+    inp.min = 1;
+    inp.max = 30;
+    inp.step = 1;
+    inp.value = 4;
+    inp.title = '轮替时这个项目显示几秒';
+    inp.dataset.key = row.dataset.key;
+    const move = row.querySelector('.move');
+    row.insertBefore(inp, move || null);
+  });
+}
+function setSysRange(id, value) {
+  const el = $(`#${id}`);
+  if (!el) return;
+  el.value = value;
+  el.dispatchEvent(new Event('input'));
+}
+$('#sysList').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-dir]');
+  if (!btn) return;
+  const row = btn.closest('.sysRow');
+  if (!row) return;
+  if (btn.dataset.dir === 'up' && row.previousElementSibling) {
+    row.parentNode.insertBefore(row, row.previousElementSibling);
+  } else if (btn.dataset.dir === 'down' && row.nextElementSibling) {
+    row.parentNode.insertBefore(row.nextElementSibling, row);
+  }
+  updateSysButtons();
+});
+async function loadSysPrefs() {
+  try {
+    const p = await api('/api/sysinfo', undefined);
+    if (p) {
+      if (Array.isArray(p.order)) {
+        const list = $('#sysList');
+        const map = new Map(sysRows().map(r => [r.dataset.key, r]));
+        p.order.forEach(k => {
+          const row = map.get(k);
+          if (row) list.appendChild(row);
+        });
+        sysRows().forEach(row => {
+          if (!p.order.includes(row.dataset.key)) list.appendChild(row);
+        });
+      }
+      if (p.enabled && typeof p.enabled === 'object') {
+        for (const [k, v] of Object.entries(p.enabled)) {
+          const cb = document.querySelector(`.sysOn[data-key="${k}"]`);
+          if (cb) cb.checked = !!v;
+        }
+      }
+      if (p.display) $('#sysDisplay').value = p.display;
+      if (p.font_size) setSysRange('sysFont', p.font_size);
+      if (typeof p.font_v === 'number') $('#sysFontV').value = p.font_v;
+      if (p.scroll_speed) setSysRange('sysSpeed', p.scroll_speed);
+      if (p.durations && typeof p.durations === 'object') {
+        for (const [k, v] of Object.entries(p.durations)) {
+          const inp = document.querySelector(`.sysSec[data-key="${k}"]`);
+          if (inp) {
+            inp.value = Math.max(1, Math.min(30, parseFloat(v) || 4));
+          }
+        }
+      }
+      if (typeof p.custom_cpu_name === 'string') {
+        $('#sysCpuName').value = p.custom_cpu_name;
+      }
+      if (typeof p.custom_gpu_name === 'string') {
+        $('#sysGpuName').value = p.custom_gpu_name;
+      }
+      if (typeof p.app_prefix === 'string') $('#sysAppLabel').value = p.app_prefix;
+      $('#sysAutoGame').checked = p.auto_game !== false;
+    }
+  } catch (e) { /* 忽略 */ }
+  updateSysButtons();
+}
+
+$('#btnSys').onclick = async () => {
+  const order = sysRows().map(r => r.dataset.key);
+  const enabled = {};
+  const durations = {};
+  order.forEach(k => {
+    const cb = document.querySelector(`.sysOn[data-key="${k}"]`);
+    enabled[k] = !!(cb && cb.checked);
+    const row = document.querySelector(`#sysList .sysRow[data-key="${k}"]`);
+    const inp = row && row.querySelector('.sysSec');
+    durations[k] = Math.max(1, Math.min(30, parseFloat(inp && inp.value) || 4));
+  });
+  const r = await api('/api/sysinfo', {
+    order,
+    enabled,
+    durations,
+    display: $('#sysDisplay').value,
+    font_size: parseInt($('#sysFont').value) || 12,
+    font_v: parseFloat($('#sysFontV').value) || 0,
+    scroll_speed: parseFloat($('#sysSpeed').value) || 90,
+    custom_cpu_name: $('#sysCpuName').value.trim(),
+    custom_gpu_name: $('#sysGpuName').value.trim(),
+    app_prefix: $('#sysAppLabel').value,
+    auto_game: $('#sysAutoGame').checked
+  });
+  toast(r.ok ? '系统信息已开始显示' : ('失败：' + (r.error || '')), !r.ok);
+  refreshState();
+};
+
+let sysVTimer = null;
+$('#sysFontV').addEventListener('input', () => {
+  clearTimeout(sysVTimer);
+  sysVTimer = setTimeout(async () => {
+    await api('/api/sysinfo/fontv', {
+      font_v: parseFloat($('#sysFontV').value) || 0
+    });
+  }, 120);
+});
+$('#sysAutoGame').addEventListener('change', async () => {
+  await api('/api/sysinfo/autogame', {
+    auto_game: $('#sysAutoGame').checked
+  });
+});
+
+function musicParams(extra) {
+  return Object.assign({
+    bars: parseInt($('#mBars').value),
+    col_width: parseInt($('#mCw').value),
+    col_gap: parseInt($('#mCg').value),
+    show_bars: $('#mShowBars').checked,
+    show_title: $('#npShow').checked,
+    peaks: $('#mPeaks').checked,
+    gradient: $('#mGrad').checked,
+    decay: parseFloat($('#musicDecay').value),
+    full: $('#musicFull').checked,
+    style: $('#musicStyle').value,
+    np_units: parseInt($('#npUnits').value),
+    np_speed: parseFloat($('#npSpeed').value),
+    np_bar_dim: parseFloat($('#npDim').value),
+    np_v_off: parseFloat($('#npVOff').value),
+    gain: parseFloat($('#musicGain').value)
+  }, extra || {});
+}
+
+$('#btnMusic').onclick = async () => {
+  $('#musicState').textContent = '正在启动音频采集…';
+  await api('/api/music/params', musicParams({ mode: 'compact' }));
+  const r = await api('/api/music', {
+    on: true, gain: parseFloat($('#musicGain').value), style: $('#musicStyle').value
+  });
+  if (r.ok) {
+    $('#musicState').textContent = '运行中 · ' + (r.bands || 24) + ' 个频段';
+    toast('音乐可视化已启动');
+  } else {
+    $('#musicState').textContent = '启动失败';
+    toast(r.error || '启动失败', true);
+  }
+  refreshState();
+};
+$('#btnMusicStop').onclick = async () => {
+  await api('/api/music', { on: false });
+  $('#musicState').textContent = '未启动';
+  toast('已停止');
+  refreshState();
+};
+/* ---- 奥创灯效 ---- */
+let fxLoaded = false, fxActive = null;
+
+const THEME_CN = {
+  'ROG Gallery': 'ROG 主题', 'Festive': '节庆', 'Music': '音乐',
+};
+
+async function loadFx(force) {
+  if (fxLoaded && !force) return;
+  const box = $('#fxList');
+  box.innerHTML = '<div class="hint">正在扫描奥创灯效目录…</div>';
+  try {
+    const r = await api('/api/effects', undefined);
+    fxLoaded = true;
+    if (!r.count) {
+      box.innerHTML = '<div class="hint">没有找到奥创灯效。' +
+        '请先在奥创里下载「AniMe Vision」灯效，或检查 ' +
+        'C:\\ProgramData\\ASUS\\ACStore\\UserContent。</div>';
+      return;
+    }
+    box.innerHTML = '';
+    const groups = {};
+    for (const it of r.items) {
+      const k = it.theme || '未分类';
+      (groups[k] = groups[k] || []).push(it);
+    }
+    for (const theme of Object.keys(groups).sort()) {
+      const h = document.createElement('div');
+      h.className = 'fxgroup';
+      h.textContent = (THEME_CN[theme] || theme) + ' · ' + groups[theme].length;
+      box.appendChild(h);
+      for (const it of groups[theme]) {
+        const card = document.createElement('div');
+        card.className = 'fxcard';
+        card.dataset.id = it.id;
+        card.title = it.name + (it.tag ? '\n' + it.tag : '');
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.src = '/api/effects/thumb/' + it.id;
+        img.alt = it.name;
+        const label = document.createElement('span');
+        label.textContent = it.name;
+        const addBtn = document.createElement('span');
+        addBtn.className = 'add';
+        addBtn.textContent = '+ 加入列表';
+        addBtn.onclick = (e) => { e.stopPropagation(); plAdd(it); };
+        card.appendChild(img);
+        card.appendChild(label);
+        card.appendChild(addBtn);
+        card.onclick = () => playFx(it);
+        box.appendChild(card);
+      }
+    }
+  } catch (e) {
+    box.innerHTML = '<div class="hint">扫描失败：' + e + '</div>';
+  }
+}
+
+async function playFx(it) {
+  $('#fxState').textContent = '正在加载 ' + it.name + '…';
+  const r = await api('/api/effects/play', {
+    id: it.id,
+    brightness: parseFloat($('#fxBright').value),
+    loops: parseInt($('#fxLoops').value || '0'),
+    speed: parseFloat($('#fxSpeed').value),
+    mode: 'auto'
+  });
+  if (!r.ok) {
+    $('#fxState').textContent = '播放失败';
+    return toast(r.error || '播放失败', true);
+  }
+  fxActive = it.id;
+  document.querySelectorAll('.fxcard').forEach(c => {
+    c.classList.toggle('active', c.dataset.id === it.id);
+  });
+  $('#fxState').textContent = '播放中 · ' + it.name + ' · ' + r.frames + ' 帧 · '
+    + (r.duration != null ? r.duration.toFixed(1) + 's' : '');
+  toast('正在播放：' + it.name);
+  refreshState();
+}
+
+let fxSpeedTimer = null;
+$('#fxSpeed').addEventListener('input', () => {
+  clearTimeout(fxSpeedTimer);
+  fxSpeedTimer = setTimeout(async () => {
+    await api('/api/speed', { speed: parseFloat($('#fxSpeed').value) });
+  }, 200);
+});
+
+/* ---- 播放列表 ---- */
+let plItems = [];       // [{id, name, theme}]，顺序即播放顺序
+let plPlaying = -1;     // 正在播放的下标
+
+function renderPl() {
+  const box = $('#plList');
+  $('#plCount').textContent = plItems.length + ' 个';
+  if (!plItems.length) {
+    box.innerHTML = '<div class="hint" id="plEmpty">列表是空的，先选几个灯效加进来。</div>';
+    return;
+  }
+  box.innerHTML = '';
+  plItems.forEach((it, i) => {
+    const row = document.createElement('div');
+    row.className = 'plitem' + (i === plPlaying ? ' playing' : '');
+    row.draggable = true;
+    row.dataset.idx = i;
+    const idx = document.createElement('span');
+    idx.className = 'idx';
+    idx.textContent = (i + 1) + '.';
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = it.name;
+    const thm = document.createElement('span');
+    thm.className = 'thm';
+    thm.textContent = THEME_CN[it.theme] || it.theme || '';
+    const rm = document.createElement('span');
+    rm.className = 'rm';
+    rm.textContent = '×';
+    rm.title = '从列表移除';
+    rm.onclick = () => { plItems.splice(i, 1); plSync(); };
+    row.appendChild(idx);
+    row.appendChild(nm);
+    row.appendChild(thm);
+    row.appendChild(rm);
+
+    row.ondragstart = (e) => {
+      e.dataTransfer.setData('text/plain', String(i));
+      row.style.opacity = '0.5';
+    };
+    row.ondragend = () => { row.style.opacity = ''; };
+    row.ondragover = (e) => { e.preventDefault(); row.style.borderColor = 'var(--acc)'; };
+    row.ondragleave = () => { row.style.borderColor = ''; };
+    row.ondrop = (e) => {
+      e.preventDefault();
+      row.style.borderColor = '';
+      const from = parseInt(e.dataTransfer.getData('text/plain'));
+      if (isNaN(from) || from === i) return;
+      const [moved] = plItems.splice(from, 1);
+      plItems.splice(i, 0, moved);
+      plSync();
+    };
+    box.appendChild(row);
+  });
+}
+
+function plAdd(it) {
+  if (plItems.some(x => x.id === it.id)) {
+    return toast('已经在列表里了：' + it.name);
+  }
+  plItems.push({ id: it.id, name: it.name, theme: it.theme });
+  plSync();
+  toast('已加入列表：' + it.name);
+}
+
+async function plSync() {
+  renderPl();
+  await api('/api/playlist/set', {
+    ids: plItems.map(x => x.id),
+    loops: parseInt($('#plLoops').value || '1')
+  });
+}
+
+async function plRefresh() {
+  const r = await api('/api/playlist', undefined);
+  plPlaying = r.active ? r.index : -1;
+  renderPl();
+}
+
+$('#btnPlStart').onclick = async () => {
+  if (!plItems.length) return toast('列表是空的', true);
+  const r = await api('/api/playlist/start', {
+    ids: plItems.map(x => x.id),
+    loops: parseInt($('#plLoops').value || '1'),
+    brightness: parseFloat($('#fxBright').value),
+    speed: parseFloat($('#fxSpeed').value)
+  });
+  if (!r.ok) return toast(r.error || '启动失败', true);
+  plPlaying = 0;
+  renderPl();
+  $('#fxState').textContent = '轮播中 · ' + (r.name || '') + ' · ' + (r.frames || 0) + ' 帧';
+  toast('开始轮播，共 ' + plItems.length + ' 个灯效');
+  refreshState();
+};
+
+$('#btnPlNext').onclick = async () => {
+  if (!plItems.length) return toast('列表是空的', true);
+  const r = await api('/api/playlist/next', {});
+  if (r.ok && r.playlist) {
+    plPlaying = r.playlist.index;
+    renderPl();
+    $('#fxState').textContent = '轮播中 · ' + (r.name || '');
+  }
+};
+
+$('#btnPlStop').onclick = async () => {
+  await api('/api/playlist/stop', {});
+  plPlaying = -1;
+  renderPl();
+  $('#fxState').textContent = '未播放';
+  toast('已停止轮播');
+};
+
+$('#btnPlClear').onclick = async () => {
+  plItems = [];
+  plPlaying = -1;
+  await api('/api/playlist/set', { ids: [] });
+  renderPl();
+  toast('列表已清空');
+};
+
+$('#plLoops').onchange = () => plSync();
+
+async function initPlaylist() {
+  try {
+    const r = await api('/api/playlist', undefined);
+    if (r.items && r.items.length) {
+      plItems = r.items.map(x => ({ id: x.id, name: x.name, theme: x.theme }));
+      if (r.loops) $('#plLoops').value = r.loops;
+    } else {
+      plItems = [];
+    }
+    plPlaying = r.active ? r.index : -1;
+    renderPl();
+  } catch (e) { /* 忽略 */ }
+}
+initPlaylist();
+
+setInterval(async () => {
+  try {
+    const r = await api('/api/playlist', undefined);
+    if (r.active) {
+      if (r.index !== plPlaying) { plPlaying = r.index; renderPl(); }
+      const cur = (r.items[r.index] || {}).name || '';
+      if ($('#fxState').textContent.startsWith('轮播中') && cur) {
+        $('#fxState').textContent = '轮播中 · ' + cur;
+      }
+    } else if (plPlaying !== -1) {
+      plPlaying = -1;
+      renderPl();
+    }
+  } catch (e) { /* 忽略 */ }
+}, 1500);
+
+document.querySelector('[data-tab="fx"]').addEventListener('click', () => loadFx(false));
+
+$('#btnFxRefresh').onclick = () => { fxLoaded = false; loadFx(true); };
+$('#btnFxStop').onclick = async () => {
+  await api('/api/off', {});
+  fxActive = null;
+  document.querySelectorAll('.fxcard').forEach(c => c.classList.remove('active'));
+  $('#fxState').textContent = '未播放';
+  toast('已停止');
+  refreshState();
+};
+
+$('#btnMusicApply').onclick = async () => {
+  await api('/api/music/params', musicParams({ mode: 'compact' }));
+  toast('已应用柱/歌名参数');
+};
+$('#btnMusicEven').onclick = async () => {
+  await api('/api/music/params', musicParams({ mode: 'even', bars: 11, col_width: 2, col_gap: 1 }));
+  toast('已切换：11 条均匀（2 列柱 + 1 列缝）');
+};
+$('#btnMusicCompact').onclick = async () => {
+  await api('/api/music/params', musicParams({ mode: 'compact', bars: 12, col_gap: 2 }));
+  toast('已切换：12 条紧凑（实心列 + 半列加粗）');
+};
+
+let npTimer = null;
+$('#musicDecay').addEventListener('input', () => {
+  clearTimeout(npTimer);
+  npTimer = setTimeout(() => $('#btnMusicApply').click(), 250);
+});
+$('#musicFull').onchange = async () => {
+  await api('/api/music/params', musicParams({}));
+  toast($('#musicFull').checked ? '已切换：全频段线性' : '已切换：对数频段');
+};
+
+['#npUnits', '#npSpeed', '#npDim', '#npVOff', '#musicGain'].forEach(sel => {
+  const el = document.querySelector(sel);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    clearTimeout(npTimer);
+    npTimer = setTimeout(() => $('#btnMusicApply').click(), 250);
+  });
+});
+let barsTimer = null;
+[
+  ['#mBars', 'bars', v => parseInt(v)],
+  ['#mCw', 'col_width', v => parseInt(v)],
+  ['#mCg', 'col_gap', v => parseInt(v)]
+].forEach(([sel, key, conv]) => {
+  const el = document.querySelector(sel);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    clearTimeout(barsTimer);
+    barsTimer = setTimeout(async () => {
+      await api('/api/music/params', { [key]: conv(el.value) });
+    }, 200);
+  });
+});
+$('#mShowBars').onchange = async () => {
+  await api('/api/music/params', { show_bars: $('#mShowBars').checked });
+  toast($('#mShowBars').checked ? '已开启音频柱' : '已关闭音频柱');
+};
+$('#npShow').onchange = async () => {
+  await api('/api/music/params', { show_title: $('#npShow').checked });
+  toast($('#npShow').checked ? '已开启歌名显示' : '已关闭歌名显示');
+};
+$('#mPeaks').onchange = async () => {
+  await api('/api/music/params', { peaks: $('#mPeaks').checked });
+};
+$('#mGrad').onchange = async () => {
+  await api('/api/music/params', { gradient: $('#mGrad').checked });
+};
+setInterval(async () => {
+  try {
+    const r = await api('/api/music/now', {});
+    $('#npText').textContent = r.text || '未获取';
+  } catch (e) { /* 忽略 */ }
+}, 4000);
+
+$('#brightness').oninput = async () => {
+  const v = parseInt($('#brightness').value);
+  $('#brightTxt').textContent = ['关', '低', '中', '高'][v];
+  await api('/api/brightness', { level: v });
+};
+$('#power').onchange = async () => {
+  await api('/api/power', { on: $('#power').checked });
+  refreshState();
+};
+
+const lid = document.getElementById('lid');
+const lctx = lid.getContext('2d');
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+let geom = null, bgCanvas = null, lastV = -1;
+const eyeImg = new Image();
+eyeImg.onload = () => {
+  if (geom) { layoutCanvas(); redraw(new Uint8Array(810)); }
+};
+eyeImg.src = '/rog_eye.png?t=' + Date.now();
+
+function drawEye(g, s) {
+  // 直接把 rog_eye.png 按原样贴到 A 面右上角；换图只需替换这个文件
+  if (!eyeImg.complete || !eyeImg.naturalWidth) return;
+  const e = geom.eye;
+  const w = e.size * s * 1.28;
+  const h = w * eyeImg.naturalHeight / eyeImg.naturalWidth;
+  g.drawImage(eyeImg, e.cx * s - w / 2, e.cy * s - h / 2, w, h);
+}
+
+function layoutCanvas() {
+  const cssW = lid.clientWidth || 560;
+  const cssH = Math.round(cssW * geom.lid_h / geom.lid_w);
+  lid.style.height = cssH + 'px';
+  lid.width = Math.round(cssW * DPR);
+  lid.height = Math.round(cssH * DPR);
+  bgCanvas = document.createElement('canvas');
+  bgCanvas.width = lid.width;
+  bgCanvas.height = lid.height;
+  drawBackground(bgCanvas.getContext('2d'));
+}
+
+// 画 810 颗灯珠。frame 为 null 时画全部「未点亮」的暗点；
+// 有帧时只补画点亮的灯珠（暗点已经在背景里了）。
+// 用 led[2]（线性地址）取值，不再假设数组下标等于地址。
+function drawLeds(g, s, frame) {
+  // 未点亮：每颗灯珠细分成 3×3 小点，看起来密；
+  // 点亮：仍用单颗大点，保证文字/图案不被打碎。
+  const r = Math.max(0.55, s * 0.27);
+  const rLit = Math.max(0.9, s * 0.62);
+  const bx = (geom.basis && geom.basis[0]) || [0, 0];
+  const by = (geom.basis && geom.basis[1]) || [0, 0];
+  const offs = [-0.3, 0, 0.3];
+  const buckets = [];
+  for (let i = 0; i < 8; i++) buckets.push([]);
+  for (const led of geom.leds) {
+    const v = frame ? (frame[led[2]] || 0) : 0;
+    if (v) buckets[Math.min(7, v >> 5)].push(led);
+  }
+  g.save();
+  // 按灯珠凸包裁剪，把边缘的楼梯状锯齿切成直线
+  if (geom.clip && geom.clip.length > 2) {
+    g.beginPath();
+    g.moveTo(geom.clip[0][0] * s, geom.clip[0][1] * s);
+    for (let i = 1; i < geom.clip.length; i++) {
+      g.lineTo(geom.clip[i][0] * s, geom.clip[i][1] * s);
+    }
+    g.closePath();
+    g.clip();
+  }
+  g.beginPath();
+  if (!frame) {
+    g.fillStyle = '#34363e';
+    for (const led of geom.leds) {
+      for (const dx of offs) {
+        for (const dy of offs) {
+          const px = led[0] + bx[0] * dx + by[0] * dy;
+          const py = led[1] + bx[1] * dx + by[1] * dy;
+          g.moveTo(px * s + r, py * s);
+          g.arc(px * s, py * s, r, 0, Math.PI * 2);
+        }
+      }
+    }
+    g.fill();
+    g.restore();
+    return;
+  }
+  // 点亮时加一点辉光，模仿真机灯珠的发光感
+  g.save();
+  g.shadowColor = 'rgba(255,238,196,0.9)';
+  g.shadowBlur = Math.max(2, s * 1.2);
+  for (let k = 0; k < 8; k++) {
+    const list = buckets[k];
+    if (!list.length) continue;
+    const gv = Math.min(255, 30 + (k * 32 + 16) * 0.92) | 0;
+    // 暖白：R 稍高、B 稍低，比纯白更像真机灯珠
+    g.fillStyle = 'rgb(' + Math.min(255, (gv * 1.04) | 0) + ','
+      + gv + ',' + ((gv * 0.82) | 0) + ')';
+    g.beginPath();
+    for (const led of list) {
+      const px = led[0] * s, py = led[1] * s;
+      g.moveTo(px + rLit, py);
+      g.arc(px, py, rLit, 0, Math.PI * 2);
+    }
+    g.fill();
+  }
+  g.restore();
+  g.restore();
+}
+
+function drawBackground(g) {
+  const s = lid.width / geom.lid_w;      // px per mm
+  const W = lid.width, H = lid.height;
+  g.clearRect(0, 0, W, H);
+
+  // 面板直接铺满预览区（不再画外面那圈机身灰边）
+  const pg = g.createLinearGradient(0, 0, W, H);
+  pg.addColorStop(0, '#2e2f35');
+  pg.addColorStop(0.55, '#25262b');
+  pg.addColorStop(1, '#1c1d22');
+  g.fillStyle = pg;
+  g.fillRect(0, 0, W, H);
+
+  // 未点亮的 LED 点阵（暗点），让灯带形状可见
+  drawLeds(g, s, null);
+
+  drawEye(g, s);
+}
+
+function redraw(bytes) {
+  if (!geom || !bgCanvas) return;
+  lctx.drawImage(bgCanvas, 0, 0);
+  drawLeds(lctx, lid.width / geom.lid_w, bytes);
+}
+
+function b64bytes(str) {
+  const bin = atob(str);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function initLid() {
+  geom = await api('/api/geometry', undefined);
+  layoutCanvas();
+  redraw(new Uint8Array(810));
+  window.addEventListener('resize', () => { layoutCanvas(); redraw(new Uint8Array(810)); });
+  liveLoop();
+}
+
+async function liveLoop() {
+  try {
+    const r = await api('/api/live', undefined);
+    if (r && r.v !== lastV) {
+      lastV = r.v;
+      redraw(b64bytes(r.f));
+    }
+  } catch (e) { /* 忽略 */ }
+  setTimeout(liveLoop, 40);
+}
+
+(async () => {
+  ensureSysSecInputs();
+  try { await api('/api/connect', {}); } catch (e) { /* 忽略 */ }
+  try { await loadSysPrefs(); } catch (e) { /* 忽略 */ }
+  refreshState();
+  setInterval(refreshState, 1500);
+  try { await initLid(); } catch (e) { console.error('预览初始化失败', e); }
+})();
+</script>
+</body>
+</html>
