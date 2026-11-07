@@ -1,3 +1,6 @@
+# 因为奥创自带的控制台很难用，所以让大肥鱼写了一个
+# 灯效如果频繁闪烁，需要手动去奥创中心重新开关AniMe Vision，然后重启本项目的AniMe Vision 灯控即可
+# 下面是大肥鱼自己写的
 # AniMe Vision 控制台
 
 绕过奥创（Armoury Crate），直接控制 ROG **枪神9超竞版**（Strix SCAR 16 `G635LW` /
